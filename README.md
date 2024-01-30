@@ -10,5 +10,5 @@ The following are prequisites and assumptions considered on this journey:
 (2) PowerShell module for Secret Management is also a requirement:
 [-]Please click [here](https://bit.ly/4bjARta) for guidance on how to install this module.
 [3] Whilst this is not a demonstration on how to install Windows Server Operating system. It is assumed that you have access to a server operating system in your environment.
-[4] Follow the [link](//TODO) to the PowerShell function in GitHub.
+[4] Follow the [link](https://github.com/Princetimber/WindowsAD/tree/main/ActiveDirectory/A) to the PowerShell function in GitHub.
 [-] Please ensure you read the commented help files before using the function. This contains detailed explanation on how to use the function.
