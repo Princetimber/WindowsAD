@@ -38,8 +38,6 @@ The following are prequisites and assumptions considered on this journey:
 New-ADDomain -DomainName 'Contoso.com' -DomainNetbiosName 'Contoso' -DatabasePath 'D:\' -LogPath 'L:\' -SysvolPath 'S:\' `
 -KeyVaultName 'contoso-Keyvault' -ResourceGroupName 'Contoso-rg' -SecretName 'Contoso-SecretName'
 
--  You would notice in the above example that both ForestMode and DomainMode are not necessary as they default to highest functional level as of the time ocreating this script is Win2016.
-
 ## What the script does
 -  Installs the Powershell Module
   -  Microsoft.PowerShell.SecretManagement.
