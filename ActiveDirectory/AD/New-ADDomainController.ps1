@@ -68,7 +68,6 @@ function New-ADDomainController {
     [string]$AllowedDomainAdministratorSecretName
   )
   $ErrorActionPreference = 'Stop'
-  $ConfirmPreference = 'Low'
 
   $path = @($DatabasePath, $LogPath, $SysvolPath)
   $path | ForEach-Object {
@@ -104,7 +103,7 @@ function New-ADDomainController {
     Connect-AzAccount -UseDeviceAuthentication
     $vaultName = (Get-AzKeyVault -ResourceGroupName $resourceGroupName -Name $keyVaultName).VaultName
     $subscriptionId = (Get-AzContext).Subscription.Id
-    Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters @{AZKVaultName = $vaultName; SubscriptionID = $subscriptionId }
+    Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters @{AZKVaultName = $vaultName; SubscriptionID = $subscriptionId } -Confirm:$false
     $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $safeAdministratorSecretName
     $allowedDomainAdministratorPassword = Get-Secret -Vault $vaultName -Name $allowedDomainAdministratorSecretName
     $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
@@ -120,7 +119,6 @@ function New-ADDomainController {
   finally {
     Unregister-SecretVault -Name $vaultName
     Disconnect-AzAccount
-    $ConfirmPreference = 'Medium'
     $ErrorActionPreference = 'Stop'
   }
 }
