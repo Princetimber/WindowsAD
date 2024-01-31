@@ -69,7 +69,6 @@ function New-ADDomain {
     [string]$secretName = "safeModeAdministratorPassword"
   )
   $ErrorActionPreference = 'Stop'
-  $ConfirmPreference = 'Low'
   try {
     $path = @($DatabasePath, $LogPath, $SysvolPath)
     $path | ForEach-Object {
@@ -115,7 +114,7 @@ function New-ADDomain {
       SubscriptionID = $subscriptionId
     }
 
-    Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters $vaultParameters
+    Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters $vaultParameters -Confirm:$false
     $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $secretName
 
     $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
@@ -129,9 +128,8 @@ function New-ADDomain {
     exit 1
   }
   finally {
-    Unregister-SecretVault -Name $vaultName
-    Disconnect-AzAccount
-    $ConfirmPreference = 'Medium'
+    Unregister-SecretVault -Name $vaultName -Confirm:$false
+    Disconnect-AzAccount -Confirm:$false
     $ErrorActionPreference = 'Stop'
   }
 }
