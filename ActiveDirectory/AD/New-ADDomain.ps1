@@ -47,25 +47,25 @@ This script uses an error action preference of 'Stop' and a confirm preference o
 function New-ADDomain {
   [CmdletBinding()]
   param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the FQDN of the domain to create.")]
     [string]$DomainName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the NetBIOS name of the domain to create.")]
     [string]$DomainNetBiosName,
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the domain functional level of the domain to create.")]
     [string]$DomainMode = "WinThreshold",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the forest functional level of the domain to create.")]
     [string]$ForestMode = "WinThreshold",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS database is stored.")]
     [string]$DatabasePath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS log files are stored.")]
     [string]$LogPath = "$env:SystemDrive\Windows\NTDS\",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS system volume (SYSVOL) is stored.")]
     [string]$SysvolPath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the Key Vault to use.")]
     [string]$KeyVaultName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the resource group to use where the Key Vault is located.")]
     [string]$ResourceGroupName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the secret in the Key Vault that contains the password for the Safe Mode Administrator Password.")]
     [string]$secretName = "safeModeAdministratorPassword"
   )
   $ErrorActionPreference = 'Stop'

@@ -47,24 +47,25 @@ The scripts sets the error action preference to 'Stop' and the confirm preferenc
 function New-ADDomainController {
   [CmdletBinding()]
   param (
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the FQDN of the domain to join.")]
     [string]$DomainName,
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the name of the site in which to create the new domain controller.")]
     [string]$SiteName = 'Default-First-Site-Name',
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS database is stored.")]
     [string]$DatabasePath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS log files are stored.")]
     [string]$LogPath = "$env:SystemDrive\Windows\NTDS\",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS system volume (SYSVOL) is stored.")]
     [string]$SysvolPath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the domain administrator user account used for the installation.")]
     [string]$DomainAdministratorUserName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the Key Vault to use.")]
     [string]$KeyVaultName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the resource group to use where the Key Vault is located.")]
     [string]$ResourceGroupName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the secret in the Key Vault that contains the password for the Safe Mode Administrator Password.")]
     [string]$SafeAdministratorSecretName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the secret in the Key Vault that contains the password for the adminstrator used for the installation.")]
     [string]$AllowedDomainAdministratorSecretName
   )
   $ErrorActionPreference = 'Stop'
@@ -119,6 +120,5 @@ function New-ADDomainController {
   finally {
     Unregister-SecretVault -Name $vaultName
     Disconnect-AzAccount
-    $ErrorActionPreference = 'Stop'
   }
 }
