@@ -52,7 +52,7 @@ catch {
 }
 
 function Update-ADPrincipalGroupMemebership {
-  [CmdletBinding(DefaultParameterSetName = 'AddPrincipalGroupMembership, RemovePrincipalGroupMembership')]
+  [CmdletBinding(DefaultParameterSetName = 'AddPrincipalGroupMembership, RemovePrincipalGroupMembership', SupportsShouldProcess = $true)]
   param(
     [Parameter(Mandatory = $true)][ValidateScript({
         if (Get-ADGroup -Identity $_ -ErrorAction SilentlyContinue) {
@@ -78,7 +78,16 @@ function Update-ADPrincipalGroupMemebership {
   ## Add the group to the security group.
   switch ($PSCmdlet.ParameterSetName) {
     'AddPrincipalGroupMembership' {
-      if ($AddPrincipalGroupMembership.IsPresent) {
+      if ($AddPrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Add group '$GroupName' to '$SecurityGroup'")) {
+        try {
+          Add-ADGroupMember -Identity $memberOf -Members $identity
+        }
+        catch {
+          $errorMessage = $_.Exception.Message
+          throw "Failed to add group '$GroupName' to '$SecurityGroup'. Error: $errorMessage"
+        }
+      }
+      elseif ($AddPrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Add group '$GroupName' to '$SecurityGroup'")){
         try {
           Add-ADGroupMember -Identity $memberOf -Members $identity
         }
@@ -89,7 +98,16 @@ function Update-ADPrincipalGroupMemebership {
       }
     }
     'RemovePrincipalGroupMembership' {
-      if ($RemovePrincipalGroupMembership.IsPresent) {
+      if ($RemovePrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Remove group '$GroupName' from '$SecurityGroup'")) {
+        try {
+          Remove-ADGroupMember -Identity $memberOf -Members $identity
+        }
+        catch {
+          $errorMessage = $_.Exception.Message
+          throw "Failed to remove group '$GroupName' from '$SecurityGroup'. Error: $errorMessage"
+        }
+      }
+      elseif($RemovePrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Remove group '$GroupName' from '$SecurityGroup'")) {
         try {
           Remove-ADGroupMember -Identity $memberOf -Members $identity
         }
