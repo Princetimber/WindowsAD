@@ -45,27 +45,26 @@ The scripts sets the error action preference to 'Stop' and the confirm preferenc
 - https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_commonparameters?view=powershell-7.1
 #>
 function New-ADDomainController {
-  [CmdletBinding()]
+  [CmdletBinding(SupportsShouldProcess = $true)]
   param (
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the FQDN of the domain to join.")]
+    [Parameter(Mandatory = $true)]
     [string]$DomainName,
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the name of the site in which to create the new domain controller.")]
     [string]$SiteName = 'Default-First-Site-Name',
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS database is stored.")]
+    [Parameter(Mandatory = $false)]
     [string]$DatabasePath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS log files are stored.")]
+    [Parameter(Mandatory = $false)]
     [string]$LogPath = "$env:SystemDrive\Windows\NTDS\",
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS system volume (SYSVOL) is stored.")]
+    [Parameter(Mandatory = $false)]
     [string]$SysvolPath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the domain administrator user account used for the installation.")]
+    [Parameter(Mandatory = $true)]
     [string]$DomainAdministratorUserName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the Key Vault to use.")]
+    [Parameter(Mandatory = $true)]
     [string]$KeyVaultName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the resource group to use where the Key Vault is located.")]
+    [Parameter(Mandatory = $true)]
     [string]$ResourceGroupName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the secret in the Key Vault that contains the password for the Safe Mode Administrator Password.")]
+    [Parameter(Mandatory = $true)]
     [string]$SafeAdministratorSecretName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the secret in the Key Vault that contains the password for the adminstrator used for the installation.")]
+    [Parameter(Mandatory = $true)]
     [string]$AllowedDomainAdministratorSecretName
   )
   $ErrorActionPreference = 'Stop'
@@ -101,17 +100,32 @@ function New-ADDomainController {
   $moduleNames | ForEach-Object -Parallel { Import-Module -Name $_ }
 
   try {
-    Connect-AzAccount -UseDeviceAuthentication
-    $vaultName = (Get-AzKeyVault -ResourceGroupName $resourceGroupName -Name $keyVaultName).VaultName
-    $subscriptionId = (Get-AzContext).Subscription.Id
-    Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters @{AZKVaultName = $vaultName; SubscriptionID = $subscriptionId } -Confirm:$false
-    $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $safeAdministratorSecretName
-    $allowedDomainAdministratorPassword = Get-Secret -Vault $vaultName -Name $allowedDomainAdministratorSecretName
-    $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
-    $InstallParams['Credential'] = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainAdministratorUserName, $allowedDomainAdministratorPassword
-    Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+    if ($PSCmdlet.ShouldProcess($DomainName, 'Install a new Active Directory Domain Controller')) {
+      Connect-AzAccount -UseDeviceAuthentication
+      $vaultName = (Get-AzKeyVault -ResourceGroupName $resourceGroupName -Name $keyVaultName).VaultName
+      $subscriptionId = (Get-AzContext).Subscription.Id
+      Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters @{AZKVaultName = $vaultName; SubscriptionID = $subscriptionId } -Confirm:$false
+      $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $safeAdministratorSecretName
+      $allowedDomainAdministratorPassword = Get-Secret -Vault $vaultName -Name $allowedDomainAdministratorSecretName
+      $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
+      $InstallParams['Credential'] = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainAdministratorUserName, $allowedDomainAdministratorPassword
+      Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
 
-    Install-ADDSDomainController @InstallParams
+      Install-ADDSDomainController @InstallParams
+    }
+    elseif ($PSCmdlet.ShouldContinue("Do you want to continue with adding a new domain controller to the domain $DomainName?", "Adding Domain Controller to domain '$DomainName'")) {
+      Connect-AzAccount -UseDeviceAuthentication
+      $vaultName = (Get-AzKeyVault -ResourceGroupName $resourceGroupName -Name $keyVaultName).VaultName
+      $subscriptionId = (Get-AzContext).Subscription.Id
+      Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters @{AZKVaultName = $vaultName; SubscriptionID = $subscriptionId } -Confirm:$false
+      $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $safeAdministratorSecretName
+      $allowedDomainAdministratorPassword = Get-Secret -Vault $vaultName -Name $allowedDomainAdministratorSecretName
+      $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
+      $InstallParams['Credential'] = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $domainAdministratorUserName, $allowedDomainAdministratorPassword
+      Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+      Install-ADDSDomainController @InstallParams
+    }
   }
   catch {
     Write-Error "Failed to create a new Active Directory domain controller. Please try again.: $_"
@@ -120,5 +134,6 @@ function New-ADDomainController {
   finally {
     Unregister-SecretVault -Name $vaultName
     Disconnect-AzAccount
+    $ErrorActionPreference = 'Stop'
   }
 }

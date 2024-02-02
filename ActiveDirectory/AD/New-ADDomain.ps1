@@ -45,83 +45,139 @@ This script uses an error action preference of 'Stop' and a confirm preference o
   - https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_commonparameters?view=powershell-7.1
 #>
 function New-ADDomain {
-  [CmdletBinding()]
+  [CmdletBinding(SupportsShouldProcess = $true)]
   param(
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the FQDN of the domain to create.")]
+    [Parameter(Mandatory = $true)]
     [string]$DomainName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the NetBIOS name of the domain to create.")]
+    [Parameter(Mandatory = $true)]
     [string]$DomainNetBiosName,
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the domain functional level of the domain to create.")]
+    [Parameter(Mandatory = $false)]
     [string]$DomainMode = "WinThreshold",
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the forest functional level of the domain to create.")]
+    [Parameter(Mandatory = $false)]
     [string]$ForestMode = "WinThreshold",
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS database is stored.")]
+    [Parameter(Mandatory = $false)]
     [string]$DatabasePath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS log files are stored.")]
+    [Parameter(Mandatory = $false)]
     [string]$LogPath = "$env:SystemDrive\Windows\NTDS\",
-    [Parameter(Mandatory = $false, HelpMessage = "Please provide the path to the directory where the AD DS system volume (SYSVOL) is stored.")]
+    [Parameter(Mandatory = $false)]
     [string]$SysvolPath = "$env:SystemDrive\Windows\",
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the Key Vault to use.")]
+    [Parameter(Mandatory = $true)]
     [string]$KeyVaultName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the resource group to use where the Key Vault is located.")]
+    [Parameter(Mandatory = $true)]
     [string]$ResourceGroupName,
-    [Parameter(Mandatory = $true, HelpMessage = "Please provide the name of the secret in the Key Vault that contains the password for the Safe Mode Administrator Password.")]
+    [Parameter(Mandatory = $true)]
     [string]$secretName = "safeModeAdministratorPassword"
   )
   $ErrorActionPreference = 'Stop'
   try {
-    $path = @($DatabasePath, $LogPath, $SysvolPath)
-    $path | ForEach-Object {
-      if (-not (Test-Path -Path $_)) {
-        throw "The path does not exist. Please try again.: $_"
+    if($PSCmdlet.ShouldProcess($DomainName,'Create a new Active Directory domain')){
+      $path = @($DatabasePath, $LogPath, $SysvolPath)
+      $path | ForEach-Object {
+        if (-not (Test-Path -Path $_)) {
+          throw "The path does not exist. Please try again.: $_"
+        }
       }
-    }
 
-    $env:LOG_PATH = Join-Path -Path $LogPath -ChildPath 'logs'
-    $env:DATABASE_PATH = Join-Path -Path $DatabasePath -ChildPath 'ntds'
-    $env:SYSVOL_PATH = Join-Path -Path $SysvolPath -ChildPath 'SYSVOL'
+      $env:LOG_PATH = Join-Path -Path $LogPath -ChildPath 'logs'
+      $env:DATABASE_PATH = Join-Path -Path $DatabasePath -ChildPath 'ntds'
+      $env:SYSVOL_PATH = Join-Path -Path $SysvolPath -ChildPath 'SYSVOL'
 
-    $InstallParams = @{
-      InstallDNS           = $true
-      NoRebootOnCompletion = $false
-      Force                = $true
-      DomainName           = $DomainName
-      DomainNetBiosName    = $DomainNetBiosName
-      DomainMode           = $DomainMode
-      ForestMode           = $ForestMode
-      DatabasePath         = $env:DATABASE_PATH
-      LogPath              = $env:LOG_PATH
-      SysvolPath           = $env:SYSVOL_PATH
-    }
-
-    $moduleNames = @('Microsoft.PowerShell.SecretManagement', 'az.keyVault')
-    $moduleNames | ForEach-Object {
-      if (-not (Get-Module -ListAvailable -Name $_)) {
-        Install-PSResource -Name $_ -Repository PSGallery -Scope AllUsers -TrustRepository -PassThru -Confirm:$false
+      $InstallParams = @{
+        InstallDNS           = $true
+        NoRebootOnCompletion = $false
+        Force                = $true
+        DomainName           = $DomainName
+        DomainNetBiosName    = $DomainNetBiosName
+        DomainMode           = $DomainMode
+        ForestMode           = $ForestMode
+        DatabasePath         = $env:DATABASE_PATH
+        LogPath              = $env:LOG_PATH
+        SysvolPath           = $env:SYSVOL_PATH
       }
+
+      $moduleNames = @('Microsoft.PowerShell.SecretManagement', 'az.keyVault')
+      $moduleNames | ForEach-Object {
+        if (-not (Get-Module -ListAvailable -Name $_)) {
+          Install-PSResource -Name $_ -Repository PSGallery -Scope AllUsers -TrustRepository -PassThru -Confirm:$false
+        }
+      }
+
+      $moduleNames | ForEach-Object -Parallel { Import-Module -Name $_ }
+
+      Connect-AzAccount -UseDeviceAuthentication
+      Start-Sleep -Seconds 90
+
+      $vaultName = (Get-AzKeyVault -ResourceGroupName $ResourceGroupName -Name $KeyVaultName).VaultName
+      $subscriptionId = (Get-AzContext).Subscription.Id
+
+      $vaultParameters = @{
+        AZKVaultName   = $vaultName
+        SubscriptionID = $subscriptionId
+      }
+
+      Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters $vaultParameters -Confirm:$false
+      $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $secretName
+
+      $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
+
+      Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+      Install-ADDSForest @InstallParams
     }
+    elseif($PSCmdlet.ShouldContinue("Do you want to continue with creating a new Active Directory domain named $DomainName?", "Creating a new Active Directory domain named '$DomainName'")){ 
+      $path = @($DatabasePath, $LogPath, $SysvolPath)
+      $path | ForEach-Object {
+        if (-not (Test-Path -Path $_)) {
+          throw "The path does not exist. Please try again.: $_"
+        }
+      }
 
-    $moduleNames | ForEach-Object -Parallel { Import-Module -Name $_ }
+      $env:LOG_PATH = Join-Path -Path $LogPath -ChildPath 'logs'
+      $env:DATABASE_PATH = Join-Path -Path $DatabasePath -ChildPath 'ntds'
+      $env:SYSVOL_PATH = Join-Path -Path $SysvolPath -ChildPath 'SYSVOL'
 
-    Connect-AzAccount -UseDeviceAuthentication
-    Start-Sleep -Seconds 90
+      $InstallParams = @{
+        InstallDNS           = $true
+        NoRebootOnCompletion = $false
+        Force                = $true
+        DomainName           = $DomainName
+        DomainNetBiosName    = $DomainNetBiosName
+        DomainMode           = $DomainMode
+        ForestMode           = $ForestMode
+        DatabasePath         = $env:DATABASE_PATH
+        LogPath              = $env:LOG_PATH
+        SysvolPath           = $env:SYSVOL_PATH
+      }
 
-    $vaultName = (Get-AzKeyVault -ResourceGroupName $ResourceGroupName -Name $KeyVaultName).VaultName
-    $subscriptionId = (Get-AzContext).Subscription.Id
+      $moduleNames = @('Microsoft.PowerShell.SecretManagement', 'az.keyVault')
+      $moduleNames | ForEach-Object {
+        if (-not (Get-Module -ListAvailable -Name $_)) {
+          Install-PSResource -Name $_ -Repository PSGallery -Scope AllUsers -TrustRepository -PassThru -Confirm:$false
+        }
+      }
 
-    $vaultParameters = @{
-      AZKVaultName   = $vaultName
-      SubscriptionID = $subscriptionId
+      $moduleNames | ForEach-Object -Parallel { Import-Module -Name $_ }
+
+      Connect-AzAccount -UseDeviceAuthentication
+      Start-Sleep -Seconds 90
+
+      $vaultName = (Get-AzKeyVault -ResourceGroupName $ResourceGroupName -Name $KeyVaultName).VaultName
+      $subscriptionId = (Get-AzContext).Subscription.Id
+
+      $vaultParameters = @{
+        AZKVaultName   = $vaultName
+        SubscriptionID = $subscriptionId
+      }
+
+      Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters $vaultParameters -Confirm:$false
+      $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $secretName
+
+      $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
+
+      Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+      Install-ADDSForest @InstallParams
     }
-
-    Register-SecretVault -ModuleName az.keyVault -Name $vaultName -VaultParameters $vaultParameters -Confirm:$false
-    $safeModeAdministratorPassword = Get-Secret -Vault $vaultName -Name $secretName
-
-    $InstallParams['SafeModeAdministratorPassword'] = $safeModeAdministratorPassword
-
-    Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
-
-    Install-ADDSForest @InstallParams
   }
   catch {
     Write-Error "Failed to create a new Active Directory domain. Please try again.: $_"
