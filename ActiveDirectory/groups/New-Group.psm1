@@ -87,7 +87,7 @@ function Update-ADPrincipalGroupMemebership {
           throw "Failed to add group '$GroupName' to '$SecurityGroup'. Error: $errorMessage"
         }
       }
-      elseif ($AddPrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Add group '$GroupName' to '$SecurityGroup'")){
+      elseif ($AddPrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldContinue("Do you want to continue?")) {
         try {
           Add-ADGroupMember -Identity $memberOf -Members $identity
         }
@@ -107,7 +107,7 @@ function Update-ADPrincipalGroupMemebership {
           throw "Failed to remove group '$GroupName' from '$SecurityGroup'. Error: $errorMessage"
         }
       }
-      elseif($RemovePrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Remove group '$GroupName' from '$SecurityGroup'")) {
+      elseif ($RemovePrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldContinue("Do you want to continue?")) {
         try {
           Remove-ADGroupMember -Identity $memberOf -Members $identity
         }
