@@ -37,6 +37,12 @@ $createParams['GroupScope'] = $GroupScope
 if ($Description) {
   $createParams['Description'] = $Description
 }
+if ($DisplayName) {
+  $createParams['DisplayName'] = $DisplayName
+}
+if ($SamAccountName) {
+  $createParams['SamAccountName'] = $SamAccountName
+}
 ## Create the group.
 try {
   if ($PSCmdlet.ShouldProcess($Name, 'Create a new group')) {
