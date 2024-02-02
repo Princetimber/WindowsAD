@@ -66,7 +66,9 @@ function New-ADDomain {
     [Parameter(Mandatory = $true)]
     [string]$ResourceGroupName,
     [Parameter(Mandatory = $true)]
-    [string]$secretName = "safeModeAdministratorPassword"
+    [string]$secretName = "safeModeAdministratorPassword",
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
   )
   $ErrorActionPreference = 'Stop'
   try {
@@ -124,7 +126,7 @@ function New-ADDomain {
 
       Install-ADDSForest @InstallParams
     }
-    elseif($PSCmdlet.ShouldContinue("Do you want to continue with creating a new Active Directory domain named $DomainName?", "Creating a new Active Directory domain named '$DomainName'")){ 
+    elseif($PSCmdlet.ShouldContinue("Do you want to continue with creating a new Active Directory domain named $DomainName?", "Creating a new Active Directory domain named '$DomainName'")){
       $path = @($DatabasePath, $LogPath, $SysvolPath)
       $path | ForEach-Object {
         if (-not (Test-Path -Path $_)) {

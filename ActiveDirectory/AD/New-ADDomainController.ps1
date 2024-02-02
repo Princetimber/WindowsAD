@@ -65,7 +65,9 @@ function New-ADDomainController {
     [Parameter(Mandatory = $true)]
     [string]$SafeAdministratorSecretName,
     [Parameter(Mandatory = $true)]
-    [string]$AllowedDomainAdministratorSecretName
+    [string]$AllowedDomainAdministratorSecretName,
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
   )
   $ErrorActionPreference = 'Stop'
 
