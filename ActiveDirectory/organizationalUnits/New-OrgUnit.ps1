@@ -1,7 +1,7 @@
 function New-OrganizationalUnit {
-  [CmdletBinding(SupportsShouldProcess = $true)]
+  [CmdletBinding()]
   param(
-    [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][ValidateScript({
+    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateNotNullOrEmpty()][ValidateScript({
         if (-not(Get-ADOrganizationalunit -Filter { Name -Like "$($_)" } -ErrorAction SilentlyContinue)) {
           return $true
         }
@@ -10,11 +10,11 @@ function New-OrganizationalUnit {
         }
       })]
     [string]$Name,
-    [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
+    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateNotNullOrEmpty()]
     [string]$Path,
     [Parameter(Mandatory = $false)][ValidatePattern('^[A-Z][a-z]+$')]
     [string]$Description,
-    [Parameter(Mandatory = $false)][ValidatePattern('^[A-Z][a-z]+$')]
+    [Parameter(Mandatory = $false)]
     [string]$City,
     [Parameter(Mandatory = $false)][ValidatePattern('^[A-Z]{2,3}$')]
     [string]$Country,
@@ -64,16 +64,10 @@ function New-OrganizationalUnit {
   }
   ## Create the organizational unit.
   try {
-    if ($PSCmdlet.ShouldProcess($Name, 'Create a new organizational unit')) {
+
       New-ADOrganizationalUnit @createParams
       $OU = Get-ADOrganizationalUnit -Filter "Name -Like '$Name'"
       return $OU.Name + " " + $OU.DistinguishedName
-    }
-    elseif ($PSCmdlet.ShouldContinue("Do you want to continue?")) {
-      New-ADOrganizationalUnit @createParams
-      $OU = Get-ADOrganizationalUnit -Filter "Name -Like '$Name'"
-      return $OU.Name + " " + $OU.DistinguishedName
-    }
   }
   catch {
     $errorMessage = $_.Exception.Message
