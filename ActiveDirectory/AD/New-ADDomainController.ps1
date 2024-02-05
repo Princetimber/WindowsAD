@@ -49,6 +49,7 @@ function New-ADDomainController {
   param (
     [Parameter(Mandatory = $true)]
     [string]$DomainName,
+    [Parameter(Mandatory = $false)]
     [string]$SiteName = 'Default-First-Site-Name',
     [Parameter(Mandatory = $false)]
     [string]$DatabasePath = "$env:SystemDrive\Windows\",
