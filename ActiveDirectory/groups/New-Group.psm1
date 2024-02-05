@@ -1,6 +1,7 @@
+function New-Group {
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-  [Parameter(Mandatory = $true)][ValidateScript({
+  [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateScript({
       if (-not(Get-ADGroup -Filter { Name -Like "$($_)" } -ErrorAction SilentlyContinue)) {
         return $true
       }
@@ -56,11 +57,12 @@ catch {
   $errorMessage = $_.Exception.Message
   throw "Failed to create group '$Name' in '$Path'. Error: $errorMessage"
 }
+}
 
 function Update-ADPrincipalGroupMemebership {
   [CmdletBinding(DefaultParameterSetName = 'AddPrincipalGroupMembership, RemovePrincipalGroupMembership', SupportsShouldProcess = $true)]
   param(
-    [Parameter(Mandatory = $true)][ValidateScript({
+    [Parameter(Mandatory = $true,ValueFromPipeline = $true)][ValidateScript({
         if (Get-ADGroup -Identity $_ -ErrorAction SilentlyContinue) {
           return $true
         }
