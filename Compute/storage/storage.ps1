@@ -30,7 +30,7 @@ This function on execution wiil return the following information:
 - The drive letter of the volume.
 - The path to the hidden directory within the volume.
 #>
-function new-storage {
+function New-Storage {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory = $true)]
