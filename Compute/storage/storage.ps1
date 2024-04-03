@@ -37,12 +37,10 @@ function New-Storage {
     [string]$storagePoolFriendlyName,
     [Parameter(Mandatory = $true)]
     [string]$virtualHardDiskFriendlyName,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true)][ValidateSet('SysVol','NTDS','LOGS')]
     [string]$volumeName,
-    [Parameter(Mandatory = $false)]
-    [string]$directoryName,
-    [Parameter(Mandatory = $false)]
-    [string]$directoryPath
+    [Parameter(Mandatory = $false)][ValidateSet('SysVol','NTDS','LOGS')]
+    [string]$directoryName
   )
   $disks = Get-PhysicalDisk -CanPool $true
   if ($disks.Count -eq 0) {
@@ -74,18 +72,16 @@ function New-Storage {
     }
   }
   finally {
-    $env:DIRECTORY_PATH = Join-Path -Path $directoryPath -ChildPath $directoryName
-    if (!$directoryPath) {
-      $directoryPath = $driveLetter + ":"
-    }
-    elseif (-not (Test-Path -Path $env:DIRECTORY_PATH)) {
+    $driveLetter = (Get-Volume | Where-Object { $_.FileSystemLabel -eq $volumeName }).DriveLetter
+    $env:DIRECTORY_PATH = $driveLetter + ":\"
+    if (-not (Test-Path -Path (Join-Path -Path $env:DIRECTORY_PATH -ChildPath $directoryName))) {
       New-Item -Name $directoryName -Path $env:DIRECTORY_PATH -ItemType Directory | ForEach-Object { $_.Attributes = "Hidden" }
     }
-    $acl = Get-Acl -Path $env:DIRECTORY_PATH
+    $acl = Get-Acl -Path ($env:DIRECTORY_PATH + $directoryName)
     $acl.SetAccessRuleProtection($true, $false)
     $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "FullControl", "Allow")
     $acl.AddAccessRule($rule)
-    Set-Acl -Path $env:DIRECTORY_PATH -AclObject $acl
+    Set-Acl -Path ($env:DIRECTORY_PATH + $directoryName) -AclObject $acl
   }
   return (Get-Volume).FileSystemLabel + " " + (Get-Partition -DiskNumber $number).DriveLetter + " " + $env:DIRECTORY_PATH
 }

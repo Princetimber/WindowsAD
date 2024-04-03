@@ -12,7 +12,7 @@ function New-OrganizationalUnit {
     [string]$Name,
     [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateNotNullOrEmpty()]
     [string]$Path,
-    [Parameter(Mandatory = $false)][ValidatePattern('^[A-Z][a-z]+$')]
+    [Parameter(Mandatory = $false)]
     [string]$Description,
     [Parameter(Mandatory = $false)]
     [string]$City,
@@ -22,7 +22,7 @@ function New-OrganizationalUnit {
     [string]$PostalCode,
     [Parameter(Mandatory = $false)][ValidatePattern('^[A-Z][a-z]+$')]
     [string]$State,
-    [Parameter(Mandatory = $false)][ValidatePattern('^[A-Z][a-z]+$')]
+    [Parameter(Mandatory = $false)]
     [string]$StreetAddress,
     [Parameter(Mandatory = $false)]
     [string]$ManagedBy,

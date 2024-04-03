@@ -1,0 +1,13 @@
+﻿Name,GivenName,Surname,DisplayName,SamAccountName,Company,Department,Domain
+Carl Baron,Carl,Baron,Carl Baron,Carl,fountview Enterprise Solutions ,Engineering,fountview.co.uk
+sysadmin,Systems,Administrator,Systems Administrator,sysadmin,fountview Enterprise Solutions ,IT,fountview.co.uk
+aadsync,aad,sync,aadsync account,aadsync,fountview Enterprise Solutions ,IT,fountview.co.uk
+ConfigMgrAdmin,ConfigMgr,Admin,ConfigMgrAdmin,ConfigMgrAdmin,fountview Enterprise Solutions ,Infrastructure,fountview.co.uk
+Ibrahim Babangida,Ibrahim ,Babangida,Ibrahim Babangida,Ibrahim,fountview Enterprise Solutions ,Security,fountview.co.uk
+Sani Abacha,Sani,Abacha,Sani Abacha,Sani,fountview Enterprise Solutions ,Operations,fountview.co.uk
+Funmilayo Ransome-Kuti,Funmilayo,Ransome-Kuti,Funmilayo Ransome-Kuti,Funmilayo,fountview Enterprise Solutions ,Service Desk,fountview.co.uk
+Bola Tinubu,Bola,Tinubu,Bola Tinubu,Bola,fountview Enterprise Solutions ,Human Resources,fountview.co.uk
+svc_adjoin,svc,adjoin,svc_adjoin,svc_adjoin,fountview Enterprise Solutions ,Infrastructure,fountview.co.uk
+svc_naa,svc,naa,svc_naa,svc_naa,fountview Enterprise Solutions ,Infrastructure,fountview.co.uk
+svc_push,svc,push,svc_push,svc_push,fountview Enterprise Solutions ,Infrastructure,fountview.co.uk
+svc_ssrs,svc,ssrs,svc_ssrs,svc_ssrs,fountview Enterprise Solutions ,Infrastructure,fountview.co.uk
