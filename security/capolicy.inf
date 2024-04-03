@@ -1,0 +1,31 @@
+[version]
+signature = "$Windows NT$"
+
+[PolicyStatementExtension]
+Policies=InternalPolicy, AllIssuancePolicy
+Critical=FALSE
+
+[AllIssuancePolicy]
+OID=2.5.26.30.0
+
+[InternalPolicy]
+OID =1.2.3.1455.67.89.5
+Notice="The internal policy for the issuance of certificates.  This policy is intended for use by applications that wish to enforce the internal policy of the organization."
+
+[CRLDistributionPoint]
+
+[AuthorityInfoAccess]
+
+[certsrv_server]
+RenewalKeyLength=4096
+RenewalValidityPeriod=Years
+RenewalValidityPeriodUnits=10
+CRLPeriod=Years
+CRLPeriodUnits=2
+CRLDeltaPeriod=Weeks
+CRLDeltaPeriodUnits=26
+LoadDefaultTemplates=0
+AlternateSignatureAlgorithm=0
+
+[BasicConstraintsExtension]
+PathLength=1
