@@ -1,0 +1,66 @@
+# import adcs modules
+$name = @('ADCSAdministration', 'ADCSDeployment')
+$name | ForEach-Object { Import-Module -Name $_ }
+
+# define parameters
+$param = @{
+  AddToCertificateCdP  = $true
+  AddToFreshestCrl     = $true
+  AddToCertificateAia  = $true
+  PublishToServer      = $true
+  PublishDeltatoServer = $true
+  Confirm              = $false
+}
+
+# Remove CDP
+$CrlPath = 'C:\Windows\system32\CertSrv\CertEnroll\<CAName><CRLNameSuffix><DeltaCRLAllowed>.crl'
+$uri = (Get-CACrlDistributionPoint).Uri
+$uri | Where-Object { $_ -ne $CrlPath } | ForEach-Object { Remove-CACrlDistributionPoint -Uri $_ -confirm:$false }
+
+# Add CDP
+$uri = 'http://S1.fountview.co.uk/pki/<CAName><CRLNameSuffix><DeltaCRLAllowed>.crl'
+$param['Uri'] = $uri
+$param.Remove('AddToCertificateAia')
+$param.Remove('PublishToServer')
+$param.Remove('PublishDeltatoServer')
+Add-CACrlDistributionPoint @param
+
+# add CDP file path
+$param = @{
+  AddToCertificateCdP  = $true
+  AddToFreshestCrl     = $true
+  AddToCertificateAia  = $true
+  PublishToServer      = $true
+  PublishDeltatoServer = $true
+  Confirm              = $false
+}
+$uri = 'file://\\S1.fountview.co.uk\pki\<CAName><CRLNameSuffix><DeltaCRLAllowed>.crl'
+$param['Uri'] = $uri
+$param.Remove('AddToCertificateCdP')
+$param.Remove('AddToFreshestCrl')
+$param.Remove('AddToCertificateAia')
+
+Add-CACrlDistributionPoint @param
+
+# add AIA
+$uri = (Get-CAAuthorityInformationAccess).Uri
+$AiAPath = 'C:\Windows\system32\CertSrv\CertEnroll\<ServerDNSName>_<CAName><CertificateName>.crt'
+$uri | Where-Object {$_ -ne $AiAPath} | ForEach-Object {Remove-CAAuthorityInformationAccess -Uri $_ -confirm:$false}
+$uri = 'http://S1.fountview.co.uk/pki/<ServerDNSName>_<CAName><CertificateName>.crt'
+$param = @{
+  AddToCertificateCdP  = $true
+  AddToFreshestCrl     = $true
+  AddToCertificateAia  = $true
+  PublishToServer      = $true
+  PublishDeltatoServer = $true
+  Confirm              = $false
+}
+$param['Uri'] = $uri
+$param.Remove('AddToCertificateCdP')
+$param.Remove('AddToFreshestCrl')
+$param.Remove('PublishToServer')
+$param.Remove('PublishDeltatoServer')
+Add-CAAuthorityInformationAccess @param
+
+# restart ADCS service
+Restart-Service -Name CertSvc -Force
