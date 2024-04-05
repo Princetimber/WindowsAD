@@ -1,0 +1,57 @@
+# import adcs modules
+$name = @('ADCSAdministration','ADCSDeployment')
+$name | ForEach-Object {Import-Module -Name $_ }
+
+#  declare fqdn of the sub CA
+$serverName = ''
+
+# define common paramenters
+$commonParams  = @{
+  AddToCertificateCdP  = $true
+  AddToFreshestCrl     = $true
+  AddToCertificateAia  = $true
+  PublishToServer      = $true
+  PublishDeltatoServer = $true
+  Confirm              = $false
+}
+
+# function to remove keys from HashTable
+function Remove-Keys{
+  param($hash, $keys)
+  $keys | ForEach-Object {
+    $hash.Remove($_)
+  }
+}
+# remove CDP 
+$CrlPath = 'C:\Windows\system32\CertSrv\CertEnroll\<serverName><CRLNameSuffix><DeltaCRLAllowed>.crl'
+$Uri = (Get-CACrlDistributionPoint).Uri
+$Uri | Where-Object {$_ -ne $CrlPath} | ForEach-Object {Remove-CACrlDistributionPoint -Uri $_ -confirm:$false } 
+
+# Add CDP
+$uri = "http://$serverName/pki/<serverName><CRLNameSuffix><DeltaCRLAllowed>.crl"
+$param = $commonParams.Clone()
+$param['Uri'] = $uri
+Remove-Keys $param 'AddToCertificateAia','PublishToServer','PublishDeltatoServer'
+Add-CACrlDistributionPoint @param
+
+#  add addiitonal CDP file share
+$uri = "file://\\$serverName\pki\<serverName><CRLNameSuffix><DeltaCRLAllowed>.crl"
+$param = $commonParams.Clone()
+$param['Uri'] = $uri
+Remove-Keys $param 'AddToCertificateAia','PublishToServer','PublishDeltatoServer'
+Add-CACrlDistributionPoint @param
+
+#  remove AIA
+$AiaPath = 'C:\Windows\system32\CertSrv\CertEnroll\<ServerDNSName>_<serverName><CertificateName>.crt'
+$Uri = (Get-CAAuthorityInformationAccess).Uri
+$Uri | Where-Object {$_ -ne $AiaPath} | ForEach-Object {Remove-CAAuthorityInformationAccess -Uri $_ -confirm:$false }
+
+# Add AIA
+$uri = "http://$ServerName/pki/<ServerDNSName>_<serverName><CertificateName>.crt"
+$param = $commonParams.Clone()
+$param['Uri'] = $uri
+Remove-Keys $param 'AddToCertificateCdP','PublishToServer','PublishDeltatoServer','AddToFreshestCrl'
+Add-CAAuthorityInformationAccess @param
+
+# restart the CA service
+Restart-Service -Name CertSvc -Force
