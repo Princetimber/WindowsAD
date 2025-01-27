@@ -18,12 +18,12 @@
     }
   ],
   "settings": {
-    "editor.semanticHighlighting.enabled": true
+    "editor.semanticHighlighting.enabled": true,
+    "extensions.ignoreRecommendations": true
   },
   "extensions": {
     "recommendations": [
       "ms-vscode.powershell",
-      "ms-vscode.vscode-typescript-tslint-plugin",
       "polyglotprogramminginc.polyglot-notebook"
     ]
   }
