@@ -19,7 +19,8 @@
   ],
   "settings": {
     "editor.semanticHighlighting.enabled": true,
-    "extensions.ignoreRecommendations": true
+    "extensions.ignoreRecommendations": true,
+    "powershell.cwd": "ActiveDirectory"
   },
   "extensions": {
     "recommendations": [
