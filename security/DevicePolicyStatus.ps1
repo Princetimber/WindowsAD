@@ -36,7 +36,7 @@ function Install-RequiredModule {
   param(
     [string[]]$Modules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.DeviceManagement", "Microsoft.Graph.Groups")
   )
-  $missingModules = $Modules | ForEach-Object {
+  $missingModules = $Modules | ForEach-Object -Process {
     if(-not (Get-Module -Name $_ -ListAvailable)) {
       Set-PSResourceRepository -Name PSGallery -InstallationPolicy Trusted
       Install-PSResource -Name $_ -Repository PSGallery -Scope CurrentUser -Confirm:$false
