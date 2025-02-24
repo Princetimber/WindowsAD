@@ -36,11 +36,13 @@ function Install-RequiredModule {
   param(
     [string[]]$Modules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.DeviceManagement", "Microsoft.Graph.Groups")
   )
-  $missingModules = $Modules | Where-Object { -not (Get-Module -Name $_ -ListAvailable) }
-  if ($missingModules) {
-    Install-Module -Name $missingModules -Scope CurrentUser -Force -AllowClobber
+  $missingModules = $Modules | ForEach-Object {
+    if(-not (Get-Module -Name $_ -ListAvailable)) {
+      Set-PSResourceRepository -Name PSGallery -InstallationPolicy Trusted
+      Install-PSResource -Name $_ -Repository PSGallery -Scope CurrentUser -Confirm:$false
+    }
   }
-  Import-Module -Name $Modules -Force
+  Import-Module -Name $missingModules -Force
 }
 # Connect to Microsoft Graph with configurable authentication method
 function Connect-ToGraph {
