@@ -40,6 +40,10 @@ function New-ConfigMgrStorage {
     }
     Write-Information "Volume $volumeName created successfully: $_"
   }
+  catch {
+    $errorMessage = $_.Exception.Message
+    throw "Failed to create volume $volumeName. Error: $errorMessage"
+  }
   finally {
     $env:DIRECTORY_PATH = (Get-Volume | Where-Object { $_.FileSystemLabel -eq $volumeName }).DriveLetter + ":"
     switch ($PSCmdlet.ParameterSetName) {
