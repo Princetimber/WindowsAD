@@ -5,14 +5,27 @@
 # Version: 1.0
 
 # Check USB Storage Status
-$Path = "HKLM:\SYSTEM\CurrentControlSet\Services\USBSTOR"
-$usbStorageEnabled = (Get-ItemProperty -Path $Path -Name "Start").Start
-# Ensure exact compliance output
-if ($usbStorageEnabled -eq 4) {
-    Write-Output "Compliant"
-    exit 0
-} else {
-    Write-Output "Non-Compliant"
-    exit 1
+function Confirm-USBStorageStatus {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [string]$Path = "HKLM:\SYSTEM\CurrentControlSet\Services\USBSTOR"
+    )
+    try {
+        $usbStorageEnabled = (Get-ItemProperty -Path $Path -Name "Start").Start
+        # Ensure exact compliance output
+        if ($usbStorageEnabled -eq 4) {
+            Write-Output "Compliant"
+            exit 0
+        }
+        else {
+            Write-Output "Non-Compliant"
+            exit 1
+        }
+    }
+    catch {
+        Write-Output "Non-Compliant"
+        exit 1
+    }
 }
 
