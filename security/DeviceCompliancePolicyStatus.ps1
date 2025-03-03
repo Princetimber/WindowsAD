@@ -197,7 +197,7 @@ function Get-DeviceConfigurationPolicyAssignment {
 }
 
 # Main function to confirm if the device has consumed the policy
-function Confirm-DevicePolicyStatus {
+function Confirm-DeviceCompliancePolicyStatus {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory = $true)]

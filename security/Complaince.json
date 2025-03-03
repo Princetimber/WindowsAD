@@ -1,0 +1,18 @@
+{
+  "Rules": [
+    {
+      "SettingName": "USBStorageCompliance",
+      "Operator": "IsEquals",
+      "DataType": "String",
+      "Operand": "Compliant",
+      "MoreInfoUrl": "https://contoso.com/usb-compliance-info",
+      "RemediationStrings": [
+        {
+          "Language": "en_US",
+          "Title": "USB Storage is Enabled",
+          "Description": "USB storage must be disabled to comply with company security policies. Please contact IT support for assistance."
+        }
+      ]
+    }
+  ]
+}

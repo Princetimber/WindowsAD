@@ -195,7 +195,7 @@ function Confirm-DevicePolicyStatus {
   )
   try {
     # Install and import required modules
-    Install-RequiredModule
+    Install-RequiredModules
     # Connect to Microsoft Graph
     Connect-ToGraph -AuthMethod $AuthMethod
     # Retrieve policy ID
