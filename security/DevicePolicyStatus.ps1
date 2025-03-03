@@ -31,19 +31,23 @@ if ($PSVersionTable.PSEdition -ne "Core") {
   exit 1
 }
 # Install and Import Required Modules
-function Install-RequiredModule {
-  [CmdletBinding()]
+function Install-RequiredModules {
   param(
     [string[]]$Modules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.DeviceManagement", "Microsoft.Graph.Groups")
   )
-  $Modules | ForEach-Object -Process {
-    if (-not (Get-Module -Name $_ -ListAvailable)) {
-      Set-PSResourceRepository -Name PSGallery -InstallationPolicy Trusted
+  $Modules | ForEach-Object -Parallel {
+    if (-not (Get-PSResource -Name $_)) {
+      Write-Output "Installing module:$_"
+      Set-PSResourceRepository -Name PSGallery -Trusted
       Install-PSResource -Name $_ -Repository PSGallery -Scope CurrentUser -Confirm:$false
     }
-  }
-  $Modules | ForEach-Object -Process {
-    Import-Module -Name $_ -Force
+    elseif ((Get-PSResource -Name $_).Version -lt (Find-PSResource -Name $_).Version) {
+      Write-Output "Updating module:$_"
+      Update-PSResource -Name $_ -Repository PSGallery -Scope CurrentUser -Confirm:$false
+    }
+    else {
+      Write-Output "Module $_ is already installed and up-to-date."
+    }
   }
 }
 # Connect to Microsoft Graph with configurable authentication method
@@ -51,7 +55,7 @@ function Connect-ToGraph {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory = $false)][ValidateSet('DeviceCode', 'Interactive', 'AppRegistration')][string]$AuthMethod = 'DeviceCode',
-    [Parameter(Mandatory = $false)][string[]]$Scopes = @("DeviceManagementConfiguration.Read.All", "DeviceManagementManagedDevices.Read.All", "Group.Read.All")
+    [Parameter(Mandatory = $false)][string[]]$Scopes = @("DeviceManagementConfiguration.Read.All","Group.Read.All")
   )
   try {
     if ($null -eq $Global:GraphConnection) {
