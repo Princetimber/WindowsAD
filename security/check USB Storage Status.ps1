@@ -15,23 +15,23 @@ function Confirm-USBStorageStatus {
     $usbStorageEnabled = (Get-ItemProperty -Path $Path -Name "Start").Start
     # Ensure exact compliance output
     if ($usbStorageEnabled -eq 4) {
-      Write-Output "Compliant"
-      $hash = @{USBStorageCompliance = "Compliant"; USBStorageStatus = "Disabled" }
+      Write-Output "Non-Compliant"
+      $hash = @{USBStorageCompliance = "Non-Compliant"; USBStorageStatus = "Disabled" }
       return $hash | ConvertTo-Json -Compress
       exit 0
     }
     else {
-      Write-Output "Non-Compliant"
-      $hash = @{USBStorageCompliance = "Non-Compliant"; USBStorageStatus = "Enabled" }
+      Write-Output "Compliant"
+      $hash = @{USBStorageCompliance = "Compliant"; USBStorageStatus = "Enabled" }
       return $hash | ConvertTo-Json -Compress
       exit 1
     }
   }
   catch {
-    Write-Output "Non-Compliant"
-    $hash = @{USBStorageCompliance = "Non-Compliant"; USBStorageStatus = "Enabled" }
+    Write-Output "Compliant"
+    $hash = @{USBStorageCompliance = "Compliant"; USBStorageStatus = "Enabled" }
     return $hash | ConvertTo-Json -Compress values
     exit 1
   }
 }
-
+Confirm-USBStorageStatus
