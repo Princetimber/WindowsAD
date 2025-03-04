@@ -113,7 +113,7 @@ function Connect-ToGraph {
     throw
   }
 }
-
+# Disconnect from Microsoft Graph
 function Disconnect-FromGraph {
   try {
     if ($Global:GraphConnection) {
