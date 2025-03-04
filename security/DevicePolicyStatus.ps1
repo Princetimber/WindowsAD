@@ -55,41 +55,57 @@ function Connect-ToGraph {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory = $false)][ValidateSet('DeviceCode', 'Interactive', 'AppRegistration')][string]$AuthMethod = 'DeviceCode',
-    [Parameter(Mandatory = $false)][string[]]$Scopes = @("DeviceManagementConfiguration.Read.All","Group.Read.All")
+    [Parameter(Mandatory = $false)][string[]]$Scopes = @("DeviceManagementManagedDevices.Read.All", "Device.Read.All", "Group.Read.All", "DeviceManagementConfiguration.Read.All"),
+    [Parameter(Mandatory = $false)][string]$TenantId = $null,
+    [Parameter(Mandatory = $false)][string]$ClientId = $null,
+    [Parameter(Mandatory = $false)][string]$ClientSecret = $null
   )
   try {
-    if ($null -eq $Global:GraphConnection) {
-      try {
-        switch ($AuthMethod) {
-          'DeviceCode' {
-            Connect-MgGraph -Scopes $Scopes -UseDeviceCode -NoWelcome
-          }
-          'Interactive' {
-            Connect-MgGraph -Scopes $Scopes -NoWelcome
-          }
-          'AppRegistration' {
-            Write-Error "App Registration Authentication method is not supported by this script."
-            return
-          }
-        }
-        $timeout = New-TimeSpan -Seconds 120
-        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-        while ($stopwatch.Elapsed -lt $timeout) {
-          $context = (Get-MgContext -ErrorAction SilentlyContinue).Account
-          $Global:GraphConnection = $context
-          if ($context) {
-            Write-Output "Connected to Microsoft Graph as $($context)."
-            break
-          }
-          else {
-            Write-Output "Already connected to Microsoft Graph."
-          }
-        }
+    # Check if already connected
+    $context = Get-MgContext -ErrorAction SilentlyContinue
+    if ($null -ne $context.AppName) {
+      Write-Output "Already connected to Microsoft Graph as $($context.AppName)."
+      return
+    }
+    elseif ($null -ne $context.Account) {
+      Write-Output "Already connected to Microsoft Graph as $($context.Account)."
+      return
+    }
+
+    # Connect based on the selected authentication method
+    switch ($AuthMethod) {
+      'DeviceCode' {
+        Write-Output "Connecting to Microsoft Graph using Device Code flow..."
+        Connect-MgGraph -Scopes $Scopes -UseDeviceCode -NoWelcome
       }
-      catch {
-        Write-Error "Failed to connect to Microsoft Graph. Please see the error message for details.: $_"
-        throw
+      'Interactive' {
+        Write-Output "Connecting to Microsoft Graph using Interactive flow..."
+        Connect-MgGraph -Scopes $Scopes -NoWelcome
       }
+      'AppRegistration' {
+        if ([string]::IsNullOrEmpty($TenantId) -or [string]::IsNullOrEmpty($ClientId) -or [string]::IsNullOrEmpty($ClientSecret)) {
+          Write-Error "TenantId, ClientId, and ClientSecret are required for AppRegistration authentication."
+          return
+        }
+        Write-Output "Connecting to Microsoft Graph using App Registration..."
+        $secureClientSecret = ConvertTo-SecureString -String $ClientSecret -AsPlainText -Force
+        $ClientSecretCredential = New-Object -TypeName "System.Management.Automation.PSCredential" -ArgumentList $ClientId, $secureClientSecret
+        Connect-MgGraph -ClientSecretCredential $ClientSecretCredential -TenantId $TenantId -NoWelcome
+      }
+    }
+
+    # Verify connection
+    $context = Get-MgContext -ErrorAction SilentlyContinue
+    if ($null -ne $context.AppName) {
+      Write-Output "Connected to Microsoft Graph as $($context.AppName)."
+      $Global:GraphConnection = $context
+    }
+    elseif ($null -ne $context.Account) {
+      Write-Output "Connected to Microsoft Graph as $($context.Account)."
+      $Global:GraphConnection = $context
+    }
+    else {
+      Write-Error "Failed to connect to Microsoft Graph."
     }
   }
   catch {
@@ -97,8 +113,7 @@ function Connect-ToGraph {
     throw
   }
 }
-
-
+# Disconnect from Microsoft Graph
 function Disconnect-FromGraph {
   try {
     if ($Global:GraphConnection) {
@@ -189,7 +204,10 @@ function Confirm-DevicePolicyStatus {
     [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
     [string]$DeviceName,
     [Parameter(Mandatory = $false)][ValidateSet('DeviceCode', 'Interactive', 'AppRegistration')][string]$AuthMethod = 'DeviceCode',
-    [Parameter(Mandatory = $false)][string[]]$Scopes = @("DeviceManagementConfiguration.Read.All", "DeviceManagementManagedDevices.Read.All", "Group.Read.All"),
+    [Parameter(Mandatory = $false)][string[]]$Scopes = @("DeviceManagementConfiguration.Read.All", "DeviceManagementManagedDevices.Read.All", "Group.Read.All","Policy.Read.All"),
+    [Parameter(Mandatory = $false)][string]$TenantId = $null,
+    [Parameter(Mandatory = $false)][string]$ClientId = $null,
+    [Parameter(Mandatory = $false)][string]$ClientSecret = $null,
     [Parameter(Mandatory = $false)]
     [string]$OutputFile = (Join-Path -Path $env:USERPROFILE\Documents\ -ChildPath "DevicePolicyStatus.txt")
   )
@@ -197,7 +215,7 @@ function Confirm-DevicePolicyStatus {
     # Install and import required modules
     Install-RequiredModules
     # Connect to Microsoft Graph
-    Connect-ToGraph -AuthMethod $AuthMethod
+    Connect-ToGraph -AuthMethod $AuthMethod -TenantId $TenantId -ClientId $ClientId -ClientSecret $ClientSecret
     # Retrieve policy ID
     $policyId = Get-DeviceConfigurationPolicyId -PolicyName $PolicyName
     # Initialize an array to store results
