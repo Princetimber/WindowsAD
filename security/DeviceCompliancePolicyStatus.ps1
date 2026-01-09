@@ -294,4 +294,3 @@ function Confirm-DeviceCompliancePolicyStatus {
     Write-Error "Failed to check device policy status: $_"
   }
 }
-

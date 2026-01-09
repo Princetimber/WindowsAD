@@ -1,0 +1,43 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VS Code
+.vscode/
+.history/
+
+# Node / npm (if used in subfolders)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# PowerShell specific
+*.ps1xml
+*.psc1
+*.psrc
+
+# Backup files
+*.bak
+*.old
+*.orig
+
+# System files
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Git
+.gitignore~
+*.orig

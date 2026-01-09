@@ -1,128 +1,168 @@
+$ErrorActionPreference = 'Stop'
+$Global:LogFile = "$env:TEMP\GroupManagement_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+
+function Write-Log {
+  <#
+.SYNOPSIS
+Writes a message to the log file with timestamp and log level.
+#>
+  param(
+    [Parameter(Mandatory)][string]$Message,
+    [Parameter()][ValidateSet('INFO', 'DEBUG', 'WARN', 'ERROR')][string]$Level = 'INFO'
+  )
+  $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+  $entry = "[$timestamp] [$Level] $Message"
+  Add-Content -Path $Global:LogFile -Value $entry
+  if ($Level -eq 'ERROR') { Write-Error $Message }
+  elseif ($Level -eq 'WARN') { Write-Warning $Message }
+  elseif ($Level -eq 'DEBUG') { Write-Verbose $Message }
+  else { Write-Host $Message }
+}
+
+function Test-GroupPrerequisites {
+  <#
+.SYNOPSIS
+Performs pre-flight checks for group creation and membership management.
+#>
+  param(
+    [Parameter(Mandatory = $true)][string]$Path
+  )
+  Write-Log "Running pre-flight checks..." 'INFO'
+
+  # Check for AD module
+  if (-not (Get-Module -ListAvailable -Name ActiveDirectory)) {
+    Write-Log "ActiveDirectory PowerShell module is not available. Please install RSAT tools." 'ERROR'
+    throw "ActiveDirectory PowerShell module is not available. Please install RSAT tools."
+  }
+  Write-Log "ActiveDirectory module is available." 'DEBUG'
+
+  # Check for admin privileges
+  $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  if (-not $isAdmin) {
+    Write-Log "Script must be run as administrator." 'ERROR'
+    throw "Script must be run as administrator."
+  }
+  Write-Log "Administrative privileges confirmed." 'DEBUG'
+
+  # Simple regex for DN format
+  if ($Path -notmatch '^((OU|DC)=[^,]+,)*((OU|DC)=[^,]+)$') {
+    Write-Log "The Path parameter must be in the format 'OU=...,DC=...,DC=...'" 'ERROR'
+    throw "The Path parameter must be in the format 'OU=...,DC=...,DC=...'"
+  }
+  Write-Log "Path format validated: $Path" 'DEBUG'
+  Write-Log "Pre-flight checks passed." 'INFO'
+}
+
+function Test-ADModuleAndAdmin {
+  <#
+.SYNOPSIS
+Checks AD module and admin; used for membership management
+#>
+  Write-Log "Running pre-flight checks for group membership update..." 'INFO'
+  if (-not (Get-Module -ListAvailable -Name ActiveDirectory)) {
+    Write-Log "ActiveDirectory PowerShell module is not available. Please install RSAT tools." 'ERROR'
+    throw "ActiveDirectory PowerShell module is not available. Please install RSAT tools."
+  }
+  Write-Log "ActiveDirectory module is available." 'DEBUG'
+  $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  if (-not $isAdmin) {
+    Write-Log "Script must be run as administrator." 'ERROR'
+    throw "Script must be run as administrator."
+  }
+  Write-Log "Administrative privileges confirmed." 'DEBUG'
+  Write-Log "Pre-flight checks passed." 'INFO'
+}
+
 function New-Group {
   [CmdletBinding(SupportsShouldProcess = $true)]
   param(
-    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateScript({
-        if (-not(Get-ADGroup -Filter { Name -Like "$($_)" } -ErrorAction SilentlyContinue)) {
-          return $true
-        }
-        else {
-          throw "Group '$_' already exists."
-        }
-      })]
+    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateNotNullOrEmpty()]
     [string]$Name,
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]
     [string]$Path,
     [Parameter(Mandatory = $true)][ValidateSet('Security', 'Distribution')]
     [string]$GroupCategory,
     [Parameter(Mandatory = $true)][ValidateSet('Global', 'DomainLocal', 'Universal')]
     [string]$GroupScope,
-    [Parameter(Mandatory = $false)]
-    [string]$DisplayName,
-    [Parameter(Mandatory = $false)]
-    [string]$SamAccountName,
-    [Parameter(Mandatory = $false)]
-    [string]$Description
+    [Parameter()][string]$DisplayName,
+    [Parameter()][string]$SamAccountName,
+    [Parameter()][string]$Description
   )
-  ## Validate the Path parameter.
-  if ($Path -notmatch '^(?:OU=[^,]+,?)*(?:DC=[^,]+,?)*$') {
-    throw "The Path parameter must be in the format OU=?,DC=?,DC?"
-    return
+  Test-GroupPrerequisites -Path $Path
+
+  Write-Log "Checking if group '$Name' exists at '$Path'..." 'INFO'
+  if (Get-ADGroup -Filter "Name -eq '$Name'" -SearchBase $Path -ErrorAction SilentlyContinue) {
+    Write-Log "Group '$Name' already exists." 'ERROR'
+    throw "Group '$Name' already exists."
   }
-  ## Create a hash table of parameters for the New-ADGroup cmdlet.
-  $createParams = @{}
-  $createParams['Name'] = $Name
-  $createParams['Path'] = $Path
-  $createParams['GroupCategory'] = $GroupCategory
-  $createParams['GroupScope'] = $GroupScope
-  ## The following parameters are optional.
-  if ($Description) {
-    $createParams['Description'] = $Description
+
+  $createParams = @{
+    Name          = $Name
+    Path          = $Path
+    GroupCategory = $GroupCategory
+    GroupScope    = $GroupScope
   }
-  if ($DisplayName) {
-    $createParams['DisplayName'] = $DisplayName
-  }
-  if ($SamAccountName) {
-    $createParams['SamAccountName'] = $SamAccountName
-  }
-  ## Create the group.
+  if ($PSBoundParameters.ContainsKey('Description')) { $createParams['Description'] = $Description }
+  if ($PSBoundParameters.ContainsKey('DisplayName')) { $createParams['DisplayName'] = $DisplayName }
+  if ($PSBoundParameters.ContainsKey('SamAccountName')) { $createParams['SamAccountName'] = $SamAccountName }
+
   try {
     if ($PSCmdlet.ShouldProcess($Name, 'Create a new group')) {
-      New-ADGroup @createParams
-    }
-    elseif ($PSCmdlet.ShouldContinue("Do you want to continue?")) {
-      New-ADGroup @createParams
+      Write-Log "Creating group '$Name' in '$Path'..." 'INFO'
+      $result = New-ADGroup @createParams
+      Write-Log "Successfully created group '$Name'." 'INFO'
+      return $result
     }
   }
   catch {
-    $errorMessage = $_.Exception.Message
-    throw "Failed to create group '$Name' in '$Path'. Error: $errorMessage"
+    Write-Log "Failed to create group '$Name' in '$Path'. Error: $($_.Exception.Message)" 'ERROR'
+    throw "Failed to create group '$Name' in '$Path'. Error: $($_.Exception.Message)"
   }
 }
 
-function Update-ADPrincipalGroupMemebership {
-  [CmdletBinding(DefaultParameterSetName = 'AddPrincipalGroupMembership, RemovePrincipalGroupMembership', SupportsShouldProcess = $true)]
+function Update-ADPrincipalGroupMembership {
+  [CmdletBinding(SupportsShouldProcess = $true)]
   param(
-    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateScript({
-        if (Get-ADGroup -Identity $_ -ErrorAction SilentlyContinue) {
-          return $true
-        }
-        else {
-          throw "Group '$_' does not exist."
-        }
-      })][string]$GroupName,
-    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateSet('Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Schema Admins')]
+    [Parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateNotNullOrEmpty()]
+    [string]$GroupName,
+    [Parameter(Mandatory = $true)][ValidateSet('Domain Admins', 'Enterprise Admins', 'Group Policy Creator Owners', 'Schema Admins')]
     [string]$SecurityGroup,
-    [Parameter(Mandatory = $true, ParameterSetName = 'AddPrincipalGroupMembership')]
-    [switch]$AddPrincipalGroupMembership,
-    [Parameter(Mandatory = $true, ParameterSetName = 'RemovePrincipalGroupMembership')]
-    [switch]$RemovePrincipalGroupMembership
+    [Parameter(Mandatory = $true, ParameterSetName = 'Add')]
+    [switch]$Add,
+    [Parameter(Mandatory = $true, ParameterSetName = 'Remove')]
+    [switch]$Remove
   )
-  ## Get the the distinguished names of the groups to be added or removed.
-  $memberOf = (Get-ADGroup -Identity $SecurityGroup).DistinguishedName
+  Test-ADModuleAndAdmin
 
-  ## Get the distinguished name of the group to be modified.
-  $identity = (Get-ADGroup -Identity $GroupName).DistinguishedName
+  Write-Log "Validating existence of group '$GroupName' and security group '$SecurityGroup'..." 'INFO'
+  $targetGroup = Get-ADGroup -Identity $SecurityGroup -ErrorAction Stop
+  $memberGroup = Get-ADGroup -Identity $GroupName -ErrorAction Stop
 
-  ## Add the group to the security group.
-  switch ($PSCmdlet.ParameterSetName) {
-    'AddPrincipalGroupMembership' {
-      if ($AddPrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Add group '$GroupName' to '$SecurityGroup'")) {
-        try {
-          Add-ADGroupMember -Identity $memberOf -Members $identity
-        }
-        catch {
-          $errorMessage = $_.Exception.Message
-          throw "Failed to add group '$GroupName' to '$SecurityGroup'. Error: $errorMessage"
-        }
+  if ($Add.IsPresent) {
+    if ($PSCmdlet.ShouldProcess($GroupName, "Add to $SecurityGroup")) {
+      try {
+        Write-Log "Adding group '$GroupName' to '$SecurityGroup'..." 'INFO'
+        Add-ADGroupMember -Identity $targetGroup -Members $memberGroup
+        Write-Log "Added '$GroupName' to '$SecurityGroup'." 'INFO'
+        Write-Output "Added '$GroupName' to '$SecurityGroup'"
       }
-      elseif ($AddPrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldContinue("Do you want to continue?")) {
-        try {
-          Add-ADGroupMember -Identity $memberOf -Members $identity
-        }
-        catch {
-          $errorMessage = $_.Exception.Message
-          throw "Failed to add group '$GroupName' to '$SecurityGroup'. Error: $errorMessage"
-        }
+      catch {
+        Write-Log "Failed to add group '$GroupName' to '$SecurityGroup'. Error: $($_.Exception.Message)" 'ERROR'
+        throw "Failed to add group '$GroupName' to '$SecurityGroup'. Error: $($_.Exception.Message)"
       }
     }
-    'RemovePrincipalGroupMembership' {
-      if ($RemovePrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldProcess($GroupName, "Remove group '$GroupName' from '$SecurityGroup'")) {
-        try {
-          Remove-ADGroupMember -Identity $memberOf -Members $identity
-        }
-        catch {
-          $errorMessage = $_.Exception.Message
-          throw "Failed to remove group '$GroupName' from '$SecurityGroup'. Error: $errorMessage"
-        }
+  }
+  elseif ($Remove.IsPresent) {
+    if ($PSCmdlet.ShouldProcess($GroupName, "Remove from $SecurityGroup")) {
+      try {
+        Write-Log "Removing group '$GroupName' from '$SecurityGroup'..." 'INFO'
+        Remove-ADGroupMember -Identity $targetGroup -Members $memberGroup
+        Write-Log "Removed '$GroupName' from '$SecurityGroup'." 'INFO'
+        Write-Output "Removed '$GroupName' from '$SecurityGroup'"
       }
-      elseif ($RemovePrincipalGroupMembership.IsPresent -and $PSCmdlet.ShouldContinue("Do you want to continue?")) {
-        try {
-          Remove-ADGroupMember -Identity $memberOf -Members $identity
-        }
-        catch {
-          $errorMessage = $_.Exception.Message
-          throw "Failed to remove group '$GroupName' from '$SecurityGroup'. Error: $errorMessage"
-        }
+      catch {
+        Write-Log "Failed to remove group '$GroupName' from '$SecurityGroup'. Error: $($_.Exception.Message)" 'ERROR'
+        throw "Failed to remove group '$GroupName' from '$SecurityGroup'. Error: $($_.Exception.Message)"
       }
     }
   }

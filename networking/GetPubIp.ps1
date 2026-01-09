@@ -13,6 +13,13 @@ Author: Olamide Olaleye
 Date: 2024-04-05
 #>
 function Get-MyIP {
-    $ip = Invoke-WebRequest -Uri "https://api.ipify.org?format=json" | ConvertFrom-Json
-    $ip.ip
+    try {
+        $response = Invoke-WebRequest -Uri "https://api.ipify.org?format=json" -UseBasicParsing
+        $ip = $response.Content | ConvertFrom-Json
+        return $ip.ip
+    }
+    catch {
+        Write-Warning "Unable to retrieve public IP address: $_"
+        return $null
+    }
 }
