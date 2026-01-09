@@ -2,42 +2,73 @@
 .DS_Store
 .AppleDouble
 .LSOverride
+.Trashes
+.Spotlight-V100
+.fseventsd
 
 # VS Code
 .vscode/
 .history/
+*.code-workspace
 
-# Node / npm (if used in subfolders)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Logs
-*.log
-logs/
-
-# Temporary files
+# General OS / editor cruft
+*~
+*.swp
+*.swo
 *.tmp
 *.temp
-*.swp
-*~
-
-# PowerShell specific
-*.ps1xml
-*.psc1
-*.psrc
-
-# Backup files
 *.bak
 *.old
 *.orig
 
-# System files
+# Logs
+logs/
+*.log
+*.log.*
+
+# PowerShell
+# (keep scripts/.ps1, ignore common support/backup artifacts)
+*.ps1xml
+*.psc1
+*.psrc
+*.psd1.tmp
+
+# Windows system files (if repo ever used on Windows)
 Thumbs.db
-desktop.ini
+Desktop.ini
 $RECYCLE.BIN/
+
+# Node / npm / yarn (if used)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python (in case of helper tooling)
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Docker / Compose local env
+.env
+.env.*
+!.env.example
+!.env.*.example
 
 # Git
 .gitignore~
-*.orig
+*.rej
+
+# Misc build / package artifacts
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Local tooling caches
+.cache/
+.terraform/
